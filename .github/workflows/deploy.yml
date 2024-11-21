@@ -1,0 +1,41 @@
+name: Deploy Spring Boot Application
+
+on:
+  workflow_dispatch: # Manual trigger
+  push:
+    branches:
+      - main  # Automatically deploy when code is pushed to main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up JDK
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Step 3: Package the application
+      - name: Build JAR
+        run: ./mvnw clean package -DskipTests
+
+      # Step 4: Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t petclinic:latest .
+
+      # Step 5: Deploy to server
+      - name: Deploy to Test Server
+        env:
+          DOCKER_HOST: "ssh://<USERNAME>@<SERVER_IP>"
+        run: |
+          docker stop petclinic || true
+          docker rm petclinic || true
+          docker run -d --name petclinic -p 8080:8080 petclinic:latest
